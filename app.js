@@ -1,172 +1,294 @@
 // This comment is to test if the Automation works perfectly.
 
 const express = require('express');
+const admin = require('firebase-admin');
+
+// 1. Loading the secred key:
+const serviceAccount = require('./firebase-key.json');
+
+// 2. Initializing Firebase:
+admin.initializeApp(
+                    
+                    {credential: admin.credential.cert(serviceAccount)}
+                  
+                  );
+
+// 3. Connect to our Firestore Database:
+const database = admin.firestore();
+
+// 4. Using Express JS Framework:
 const app = express();
 
-// This below enables our API to understand
-// the JSON data that is sent within the request to our API:
+// 5. This below enables our API to understand
+//    the JSON data that is sent within the request to our API:
 app.use(express.json());
-
-
-// Our "Database" (which is just an array):
-let tasks = [
-
-             {
-                id: 1,
-                title: 'Wash Car',
-                completed: false,
-             },
-
-             {
-                id: 2,
-                title: 'Go to Butcher',
-                completed: false,
-             },
-
-            ];
 
 
 // The Endpoints:
 
 // Endpoint 1: Getting All the Tasks:
-app.get('/tasks', (req, res) => {
+app.get('/tasks', async (req, res) => {
 
-                                  res.status(200).json(tasks);
+                                       try{
 
-                                }
+                                           const snapshot = await database.collection('tasks').get();
+
+                                           const tasks = [];
+
+                                           // Looping through the Firestore document
+                                           // and pushing it into our 'tasks' array:
+                                           snapshot.forEach(
+
+                                                            doc => {
+
+                                                                    tasks.push(
+                                                                     
+                                                                               {
+ 
+                                                                                id: doc.id,
+                                                                                ...doc.data()
+
+                                                                               }
+                                                                      
+                                                                              );
+
+                                                                   }
+
+                                                           );
+
+                                             // Returning a success status code:
+                                             res.status(200).json(tasks);
+
+                                          }
+                                          catch (e) {
+
+                                                     res.status(500).json(
+                                                      
+                                                                          {
+
+                                                                           error: e.message
+
+                                                                          }
+
+                                                                         );
+
+                                                    }
+
+                                      }
        );
 
 
 // Endpoint 2: Creating a New Task:
-app.post('/tasks', (req, res) => {
+app.post('/tasks', async (req, res) => {
 
-                                   const newTask = {
+                                        try{
 
-                                                     id: tasks.length > 0 ? tasks[tasks.length - 1].id + 1 : 1,
-                                                     title: req.body.title,
-                                                     completed: false
+                                            // 1. Receiving the task title and wrapping it into a map:
+                                            const newTask = {
 
-                                                   };
+                                                             title: req.body.title,
+                                                             completed: false
 
-                                  // Adding the received task into the Database:
-                                  tasks.push(newTask);
+                                                            };
 
-                                  // Returning a success Status code:
-                                  res.status(201).json(newTask);
+                                            // 2. Adding the task to the Firestore database:
+                                            const docRef = await database.collection('tasks').add(newTask);
 
-                                 }
+                                            // 3. Returning a success status code:
+                                            res.status(200).json(
+
+                                                                  {
+
+                                                                    id: docRef.id,
+                                                                    ...newTask
+
+                                                                  }
+
+                                                                );
+
+                                           }
+                                           catch (e) {
+
+                                                       res.status(500).json(
+
+                                                                            {
+
+                                                                              error: e.message
+
+                                                                            }
+
+                                                                           );
+
+                                                     }
+
+                                       }
         );
 
 
 // Endpoint 3: Deleting all the tasks that their 'completed' status is TRUE:
-app.delete('/tasks/completed', (req, res) => {
+app.delete('/tasks/completed', async (req, res) => {
 
-                                               // I. We will filter the array to only keep
-                                               //    the tasks that their 'completed' is
-                                               //    not set to TRUE:
-                                               tasks = tasks.filter(t => t.completed === false);
+                                                     try{
 
-                                               // II. Returning a success status code:
-                                               res.status(200).json(
-                                                                    
-                                                                    {
+                                                         // 1. Getting all the tasks from the database
+                                                         //    that their 'completed' is == true:
+                                                         const snapshot = await database.collection('tasks').where('completed', '==', true).get();
 
-                                                                     message: 'All completed tasks have been successfully deleted.'
+                                                         if(snapshot.empty){
 
-                                                                    }
+                                                                             return res.status(200).json(
 
-                                                                   );
+                                                                                                          {
 
-                                             }
+                                                                                                            message: 'No completed tasks found to be deleted! .'
+
+                                                                                                          }
+
+                                                                                                        );
+
+                                                                           }
+
+                                                        // 2. Delete the tasks that their 'completed' field
+                                                        //    is == true, from the database:
+
+                                                        // NOTE: Firestore requires us to delete the documents one by one using
+                                                        //       a "Batch", thats why I have added the below code:
+                                                        const batch = database.batch();
+
+                                                        snapshot.docs.forEach(
+
+                                                                               (doc) => {
+
+                                                                                         batch.delete(doc.ref);
+
+                                                                                        }
+
+                                                                             );
+
+                                                       await batch.commit();
+
+                                                       // 3. Returning a success response code:
+                                                       res.status(200).json(
+                                                         
+                                                                            {
+
+                                                                              message: 'All completed tasks have been successfully deleted.'
+
+                                                                            }
+                                                          
+                                                                           );
+
+                                                        }
+                                                        catch(e) {
+
+                                                                  res.status(500).json(
+
+                                                                                       {
+
+                                                                                        error: e.message
+
+                                                                                       }
+
+                                                                                      );
+
+                                                                 }
+
+                                                   } 
           );
 
-// Endpoint 4: Updating a task's status to TRUE using the task ID:
-app.put('/tasks/:id', (req, res) => {
+// Endpoint 4: Updating a task's 'completed' field status to TRUE using the task ID:
+app.put('/tasks/:id', async (req, res) => {
 
-                                     // I. Extracting the ID from the URL,
-                                     //    And converting it to a number:
-                                     const taskId = parseInt(req.params.id);
+                                            try{
 
-                                     // II. Finding the specifc task in our database:
-                                     const task = tasks.find(t => t.id === taskId);
+                                                // 1. Getting the taskId:
+                                                const taskId = req.params.id;
 
-                                     // III. Updating the 'completed' task status to TRUE:
+                                                // 2. Getting the document path that contains the required task to be updated:
+                                                const taskRef = database.collection('tasks').doc(taskId);
 
-                                     // III.I Handling if the task doesn't exist:
-                                     if(!task){
+                                                // 3. Updating the 'completed' field status to TRUE:
+                                                await taskRef.update(
 
-                                               return res.status(404).json(
-                                                 
-                                                                           {
+                                                                     {
 
-                                                                            message: `Task with ID ${taskId} not found`
-                                                 
-                                                                           }
-                                                  
-                                                                          );                                     
+                                                                      completed: true
 
-                                              }
+                                                                     }
 
-                                     // III.II Otherwise:
-                                     task.completed = true;
+                                                                    );
 
-                                     // IV. Returning a success status:
-                                     res.status(200).json(
-                                       
-                                                          {
+                                                // 4. Returning a success status code:
+                                                res.status(200).json(
 
-                                                            message: 'Task marked as completed!', task: task
+                                                                      {
 
-                                                          }
-                                        
-                                                         );
+                                                                        message: `Task ${taskId} marked as completed`
 
-                                    }
+                                                                      }
+
+                                                                    );
+
+                                               }
+                                               catch (e) {
+
+                                                          res.status(404).json(
+
+                                                                                {
+
+                                                                                 message: `Task not found or update failed: ${e.message}`
+
+                                                                                }
+
+                                                                              );
+
+                                                         }
+
+                                          }
        );
 
 
 // Endpoint 5: Deleting a specific task via the ID:
-app.delete('/tasks/:id', (req, res) => {
+app.delete('/tasks/:id', async (req, res) => {
 
-                                        // I. Extracting the ID from the URL,
-                                        //    And converting it to a number:
-                                        const taskId = parseInt(req.params.id);
-   
-                                        // II. Finding the specifc task in our database:
-                                        const task = tasks.find(t => t.id === taskId);
-   
-                                        // III. Deleting the task:
-   
-                                        // III.I Handling if the task doesn't exist:
-                                        if(!task){
-   
-                                                  return res.status(404).json(
-                                                    
-                                                                              {
-   
-                                                                               message: `Task with ID ${taskId} not found`
-                                                    
-                                                                              }
-                                                     
-                                                                             );                                     
-   
+                                              try{
+
+                                                  // 1. Getting the task Id:
+                                                  const taskId = req.params.id;
+
+                                                  // 2. Getting the document path that contains the required tasks to be deleted:
+                                                  const taskRef = database.collection('tasks').doc(taskId);
+
+                                                  // 3. Deleting the document that contains the required task from the Database:
+                                                  await taskRef.delete();
+
+                                                  // 4. Returning a success status code:;
+                                                  res.status(200).json(
+
+                                                                       {
+
+                                                                        message: `Task ${taskId} has been deleted from the database.`
+
+                                                                       }
+
+                                                                      );
+
                                                  }
+                                                 catch(e){
 
-                                        // III.II Otherwise:
-                                        tasks = tasks.filter(t => t.id !== taskId);
+                                                          res.status(500).json(
 
-                                        // IV. Returning a success status:
-                                        res.status(200).json(
-                                           
-                                                             {
+                                                                               {
 
-                                                               message: `Task with ID ${taskId} has been deleted.`
+                                                                                 error: e.message
 
-                                                             }
-                                           
-                                                            );
+                                                                               }
+
+                                                                              );
+
+                                                         }
    
-                                       }
+                                             }
           );
 
 

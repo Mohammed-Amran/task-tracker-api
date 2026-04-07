@@ -30,7 +30,37 @@ pipeline {
 
                                             steps {
 
-                                                   echo 'Building the Docker Image...'
+                                                   echo 'Building the Docker Image with secure Firebase key...'
+                                                   
+                                                   // Securely pulling the file from Jenkins vault and assigning its path to FIREBASE_FILE:
+                                                   withCredentials(
+                                                    
+                                                                   [
+
+                                                                    file(
+
+                                                                         credentialsId: 'firebase-secret-file', 
+                                                                         
+                                                                         variable: 'FIREBASE_FILE'
+                                                                        
+                                                                        )
+
+                                                                   ]
+                                                                 
+                                                                 ) {
+
+                                                                    // 1. Copying the hidden vault file into our working folder,
+                                                                    //    and naming it exactly what that app.js file expects:
+                                                                    bat 'copy "%FIREBASE_FILE%" firebase-key.json'
+
+                                                                    // 2. Building the Docker Image:
+                                                                    bat 'docker build -t %IMAGE_NAME%:latest .'
+
+                                                                    // 3. Deleting the key from the Jenkins workspace immediately (for security reasons):
+                                                                    bat 'del firebase-key.json'
+
+                                                                   } // Closing brace of 'withCredential()'.
+                                                   
                                                    // We use 'bat', because Jenkins is running on Windows
                                                    bat 'docker build -t %IMAGE_NAME%:latest .'
                                                
@@ -64,7 +94,7 @@ pipeline {
                                                         // Push the shiny new image to the cloud
                                                         bat 'docker push %IMAGE_NAME%:latest'
                                                     }
-                                                    
+
                                                   }
 
                                           } // Closing brace of Stage 4.
