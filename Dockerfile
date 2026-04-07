@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 4. Installing the exact dependencies that are needed for the production:
-RUN npm install --production
+RUN npm install 
 
 # 5. Copying the rest of our application code into the container:
 COPY . .
