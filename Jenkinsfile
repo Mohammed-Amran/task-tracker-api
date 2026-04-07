@@ -59,11 +59,8 @@ pipeline {
                                                                     // 3. Deleting the key from the Jenkins workspace immediately (for security reasons):
                                                                     bat 'del firebase-key.json'
 
-                                                                   } // Closing brace of 'withCredential()'.
-                                                   
-                                                   // We use 'bat', because Jenkins is running on Windows
-                                                   bat 'docker build -t %IMAGE_NAME%:latest .'
-                                               
+                                                                   } // Closing brace of 'withCredential()'.                                                   
+                                                                                                  
                                                  }
 
                                            } // Closing brace of Stage 2.
