@@ -1,10 +1,8 @@
-// This comment is to test if the Automation works perfectly.
-// THis is just for test for Mr. Sasan
 
 const express = require('express');
 const admin = require('firebase-admin');
 
-// 1. Loading the secred key:
+// 1. Loading the secret key:
 const serviceAccount = require('./firebase-key.json');
 
 // 2. Initializing Firebase:
