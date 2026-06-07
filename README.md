@@ -27,6 +27,35 @@ of the Image up to the Docker Hub.
 
 ## Screenshots
 
+![GET](screenshots/1.HTTP_GET.png)
+
+![POST](screenshots/2.HTTP_POST.png)
+
+![RESULT OF POST](screenshots/3.RESULT_OF_HTTP_POST.png)
+
+![5. SELECTING TASK ID FOR UPDATE](screenshots/5.SELECTING_TASK_ID_FOR_UPDATE.png)
+
+![6. PUT](screenshots/6.HTTP_PUT_USING_TASK_ID.png)
+
+![7. RESULT OF PUT](screenshots/7.RESULT_OF_HTTP_PUT.png)
+
+![9 SELECTING TASK ID FOR DELETE](screenshots/9.SELECTING_TASK_ID_FOR_DELETE.png)
+
+![10 DELETE BASED ON ID](screenshots/10.HTTP_DELETE_BASED_ON_TASK_ID.png)
+
+![11 RESULT OF HTTP DELETE BASED ON ID](screenshots/11.RESULT_OF_HTTP_DELETE.png)
+
+![12 DELETE](screenshots/12.HTTP_DELETE_USING_COMPLETED_ENDPOINT.png)
+
+![13 RESULT OF DELETE](screenshots/13.RESULT_OF_HTTP_DELETE_USING_COMPLETED_ENDPOINT.png)
+
+![14 FINAL GET](screenshots/14.FINAL_HTTP_GET_AGAIN.png)
+
+![Jenkins 1](screenshots/jenkins_one.png)
+
+![Jenkins 2](screenshots/jenkins_two.png)
+
+
 ## How to Run the APP
 1. Clone this project.
 2. Run Docker Engine.
