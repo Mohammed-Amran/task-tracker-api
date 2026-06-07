@@ -1,3 +1,4 @@
+// This comment is just to test
 
 const express = require('express');
 const admin = require('firebase-admin');
@@ -23,7 +24,9 @@ const app = express();
 app.use(express.json());
 
 
+// =====================================================================
 // The Endpoints:
+// =====================================================================
 
 // Endpoint 1: Getting All the Tasks:
 app.get('/tasks', async (req, res) => {
