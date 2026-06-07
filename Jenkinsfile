@@ -18,15 +18,13 @@ pipeline {
         stage('Performance Test (JMeter)') {
             steps {
                 echo 'Running JMeter Performance Test...'
-                // Executes the .jmx file we just pushed and saves results to results.jtl
-                // We use catchError so if JMeter isn't in the Jenkins PATH, it doesn't instantly crash the whole pipeline
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    sh 'jmeter -n -t performance-test.jmx -l results.jtl'
+                    // Changed 'sh' to 'bat' for Windows, and explicitly called jmeter.bat
+                    bat 'jmeter.bat -n -t performance-test.jmx -l results.jtl'
                 }
             }
             post {
                 always {
-                    // This generates the Performance Report in the Jenkins UI (Requirement 6)
                     perfReport errorFailedThreshold: 0, errorUnstableThreshold: 0, sourceDataFiles: 'results.jtl'
                 }
             }
@@ -36,11 +34,11 @@ pipeline {
             steps {
                 echo 'Building and Pushing Docker Image...'
                 script {
-                    // Uses your existing Docker Hub credentials saved in Jenkins
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                        sh 'docker build -t $DOCKER_IMAGE .'
-                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                        sh 'docker push $DOCKER_IMAGE'
+                        // Changed 'sh' to 'bat' and used Windows %VAR% syntax
+                        bat 'docker build -t %DOCKER_IMAGE% .'
+                        bat 'echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin'
+                        bat 'docker push %DOCKER_IMAGE%'
                     }
                 }
             }
@@ -50,12 +48,12 @@ pipeline {
     post {
         success {
             echo 'Pipeline Success! Updating Jira...'
-            // This satisfies Requirement 4: Updating the Jira Project Pipeline
-            jiraComment issueKey: "${JIRA_ISSUE}", body: "Success! CI/CD Pipeline completed. Docker image pushed and Performance Tests executed. Build Number: ${env.BUILD_NUMBER}"
+            // Changed 'jiraComment' to 'jiraAddComment'
+            jiraAddComment idOrKey: "${JIRA_ISSUE}", comment: "✅ Success! CI/CD Pipeline completed. Docker image pushed and Performance Tests executed. Build Number: ${env.BUILD_NUMBER}"
         }
         failure {
             echo 'Pipeline Failed! Updating Jira...'
-            jiraComment issueKey: "${JIRA_ISSUE}", body: "Pipeline failed at Build #${env.BUILD_NUMBER}. Please check Jenkins logs."
+            jiraAddComment idOrKey: "${JIRA_ISSUE}", comment: "❌ Pipeline failed at Build #${env.BUILD_NUMBER}. Please check Jenkins logs."
         }
     }
 }
