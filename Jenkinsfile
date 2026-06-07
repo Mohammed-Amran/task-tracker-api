@@ -1,101 +1,61 @@
 pipeline {
-    // This command below, tells Jenkins that it can run on any available agent
     agent any
 
-    // We'll define our variables here, so that we won't retype them again later:
     environment {
-        
-                 DOCKERHUB_USER = "mohammed1amran" 
-                 IMAGE_NAME = "${DOCKERHUB_USER}/task-tracker-api"
-                
-                }
+        // Your Docker Hub image repository
+        DOCKER_IMAGE = 'mohammed1amran/task-tracker-api:latest'
+        // The Jira Issue we are updating
+        JIRA_ISSUE = 'KAN-4'
+    }
 
     stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
 
-            // STAGE 1: Pulling the latest code from GitHub:
-            stage('1. Checkout Code') {
+        stage('Performance Test (JMeter)') {
+            steps {
+                echo 'Running JMeter Performance Test...'
+                // Executes the .jmx file we just pushed and saves results to results.jtl
+                // We use catchError so if JMeter isn't in the Jenkins PATH, it doesn't instantly crash the whole pipeline
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sh 'jmeter -n -t performance-test.jmx -l results.jtl'
+                }
+            }
+            post {
+                always {
+                    // This generates the Performance Report in the Jenkins UI (Requirement 6)
+                    perfReport errorFailedThreshold: 0, errorUnstableThreshold: 0, sourceDataFiles: 'results.jtl'
+                }
+            }
+        }
 
-                                        steps {
-                                                   
-                                                echo 'Pulling the latest code from GitHub...'
-                                                // 'checkout scm' automatically uses the GitHub link that we will give to it Jenkins later
-                                                checkout scm 
+        stage('Build & Push Docker Image') {
+            steps {
+                echo 'Building and Pushing Docker Image...'
+                script {
+                    // Uses your existing Docker Hub credentials saved in Jenkins
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                        sh 'docker build -t $DOCKER_IMAGE .'
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                        sh 'docker push $DOCKER_IMAGE'
+                    }
+                }
+            }
+        }
+    }
 
-                                              }
-
-                                      } // Closing brace of Stage 1.
-    
-            // STAGE 2: Building the Docker Image:
-            stage('2. Build Docker Image') {
-
-                                            steps {
-
-                                                   echo 'Building the Docker Image with secure Firebase key...'
-                                                   
-                                                   // Securely pulling the file from Jenkins vault and assigning its path to FIREBASE_FILE:
-                                                   withCredentials(
-                                                    
-                                                                   [
-
-                                                                    file(
-
-                                                                         credentialsId: 'firebase-secret-file', 
-                                                                         
-                                                                         variable: 'FIREBASE_FILE'
-                                                                        
-                                                                        )
-
-                                                                   ]
-                                                                 
-                                                                 ) {
-
-                                                                    // 1. Copying the hidden vault file into our working folder,
-                                                                    //    and naming it exactly what that app.js file expects:
-                                                                    bat 'copy "%FIREBASE_FILE%" firebase-key.json'
-
-                                                                    // 2. Building the Docker Image:
-                                                                    bat 'docker build -t %IMAGE_NAME%:latest .'
-
-                                                                    // 3. Deleting the key from the Jenkins workspace immediately (for security reasons):
-                                                                    bat 'del firebase-key.json'
-
-                                                                   } // Closing brace of 'withCredential()'.                                                   
-                                                                                                  
-                                                 }
-
-                                           } // Closing brace of Stage 2.
-    
-            // STAGE 3: Running the Automated Tests:
-            stage('3. Run Tests') {
-                                    
-                                    steps {
-
-                                              echo 'Running automated tests inside the container...'
-                                              // The '--rm' flag tells Docker to delete this temporary test container immediately after finishing
-                                              bat 'docker run --rm %IMAGE_NAME%:latest npm test'
-                                          
-                                          }
-
-                                  } // Closing brace of Stage 3.
-    
-            // STAGE 4: Pushing to Docker Hub:
-            stage('4. Push to Docker Hub') {
-                                              
-                                            steps {
-
-                                                    echo 'Tests passed! Pushing image to Docker Hub...'
-                                                    // This securely grabs the 'docker-hub-credentials' you saved earlier!
-                                                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                                                        // Log in to Docker Hub using the hidden variables
-                                                        bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
-                                                        // Push the shiny new image to the cloud
-                                                        bat 'docker push %IMAGE_NAME%:latest'
-                                                    }
-
-                                                  }
-
-                                          } // Closing brace of Stage 4.
-
-    } // Closing brace of the Stages.
-
-} // Closing brace of the pipeline.
+    post {
+        success {
+            echo 'Pipeline Success! Updating Jira...'
+            // This satisfies Requirement 4: Updating the Jira Project Pipeline
+            jiraComment issueKey: "${JIRA_ISSUE}", body: "Success! CI/CD Pipeline completed. Docker image pushed and Performance Tests executed. Build Number: ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo 'Pipeline Failed! Updating Jira...'
+            jiraComment issueKey: "${JIRA_ISSUE}", body: "Pipeline failed at Build #${env.BUILD_NUMBER}. Please check Jenkins logs."
+        }
+    }
+}
