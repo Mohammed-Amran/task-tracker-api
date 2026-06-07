@@ -2,11 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Your Docker Hub image repository
         DOCKER_IMAGE = 'mohammed1amran/task-tracker-api:latest'
-        // The Jira Issue we are updating
         JIRA_ISSUE = 'KAN-4'
-        // EXACT NAME from Jenkins > Manage Jenkins > System > Jira Steps
         JIRA_SITE = 'Task Tracker Jira' 
     }
 
@@ -14,20 +11,30 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 checkout scm
+                // Install node dependencies needed to run the server locally
+                bat 'npm install'
             }
         }
 
         stage('Performance Test (JMeter)') {
             steps {
+                echo 'Starting Node.js Server in the background...'
+                // START THE SERVER: Use 'start /b' to run it in the background on Windows
+                bat 'start /b node server.js'
+                
+                // Give the server 5 seconds to fully start up
+                sleep time: 5, unit: 'SECONDS'
+
                 echo 'Running JMeter Performance Test via Docker...'
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    // Uses a JMeter Docker image to run the test without needing it installed on Windows!
                     bat 'docker run --rm -v "%WORKSPACE%":/workspace -w /workspace justb4/jmeter -n -t performance-test.jmx -l results.jtl'
                 }
             }
             post {
                 always {
                     perfReport errorFailedThreshold: 0, errorUnstableThreshold: 0, sourceDataFiles: 'results.jtl'
+                    // KILL THE SERVER: Clean up so the port isn't blocked for the next build
+                    bat 'taskkill /F /IM node.exe'
                 }
             }
         }
@@ -38,7 +45,6 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                         bat 'docker build -t %DOCKER_IMAGE% .'
-                        // Bypassing the Windows 'echo' pipe bug using the direct flag
                         bat 'docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%'
                         bat 'docker push %DOCKER_IMAGE%'
                     }
