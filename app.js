@@ -28,6 +28,7 @@ app.use(express.json());
 // The Endpoints:
 // =====================================================================
 
+// VANYA: I redefined the get RESTful endpoint
 // Endpoint 1: Getting All the Tasks:
 app.get('/tasks', async (req, res) => {
 
@@ -80,7 +81,8 @@ app.get('/tasks', async (req, res) => {
        );
 
 
-// Endpoint 2: Creating a New Task:
+// Zhyar Nasr , i redefined the post RESTful endpoint
+
 app.post('/tasks', async (req, res) => {
 
                                         try{
@@ -124,9 +126,9 @@ app.post('/tasks', async (req, res) => {
                                                      }
 
                                        }
-        );
+        ); 
 
-
+// Banu: I redefined the DELET endpoint
 // Endpoint 3: Deleting all the tasks that their 'completed' status is TRUE:
 app.delete('/tasks/completed', async (req, res) => {
 
@@ -198,6 +200,8 @@ app.delete('/tasks/completed', async (req, res) => {
                                                    } 
           );
 
+
+//Banu: I redefined the PUT endpoint
 // Endpoint 4: Updating a task's 'completed' field status to TRUE using the task ID:
 app.put('/tasks/:id', async (req, res) => {
 
@@ -248,7 +252,6 @@ app.put('/tasks/:id', async (req, res) => {
 
                                           }
        );
-
 
 // Endpoint 5: Deleting a specific task via the ID:
 app.delete('/tasks/:id', async (req, res) => {
