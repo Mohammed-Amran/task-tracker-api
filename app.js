@@ -78,7 +78,8 @@ app.get('/tasks', async (req, res) => {
        );
 
 
-// Endpoint 2: Creating a New Task:
+// Zhyar Nasr , i redefined the post RESTful endpoint
+
 app.post('/tasks', async (req, res) => {
 
                                         try{
@@ -122,8 +123,7 @@ app.post('/tasks', async (req, res) => {
                                                      }
 
                                        }
-        );
-
+        ); 
 
 // Endpoint 3: Deleting all the tasks that their 'completed' status is TRUE:
 app.delete('/tasks/completed', async (req, res) => {
