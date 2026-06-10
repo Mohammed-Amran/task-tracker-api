@@ -197,6 +197,8 @@ app.delete('/tasks/completed', async (req, res) => {
                                                    } 
           );
 
+
+//Banu: I redefined the PUT endpoint
 // Endpoint 4: Updating a task's 'completed' field status to TRUE using the task ID:
 app.put('/tasks/:id', async (req, res) => {
 
@@ -247,7 +249,6 @@ app.put('/tasks/:id', async (req, res) => {
 
                                           }
        );
-
 
 // Endpoint 5: Deleting a specific task via the ID:
 app.delete('/tasks/:id', async (req, res) => {
