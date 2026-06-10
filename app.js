@@ -125,6 +125,7 @@ app.post('/tasks', async (req, res) => {
                                        }
         ); 
 
+// Banu: I redefined the DELET endpoint
 // Endpoint 3: Deleting all the tasks that their 'completed' status is TRUE:
 app.delete('/tasks/completed', async (req, res) => {
 
