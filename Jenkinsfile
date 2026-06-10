@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'mohammed1amran/task-tracker-api:latest'
-        JIRA_ISSUE = 'KAN-4'
+        JIRA_ISSUE = 'KAN-10'
         JIRA_SITE = 'Task Tracker Jira' 
     }
 
